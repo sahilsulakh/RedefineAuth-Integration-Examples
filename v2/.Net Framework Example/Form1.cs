@@ -45,9 +45,6 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
             txtAppPass.Enabled = true;
         }
 
-
-// THIS METHOD IS FOR LOADING THE STORED USER CREDENTIAL 👇🏻
-
         private void LoadStoredCredentials()
         {
             var storedCredentials = _authClient.GetStoredCredentials();
@@ -120,11 +117,7 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
         }
 
 
-
-        // BELOW ARE TWO METHODS AND YOU HAVE TO USE ONE OF THEM. DO NOT USE BOTH OF THEM AT ONE TIME 👇🏻⚠️⚠️
-
-// USE THIS BUTTON IF YOU WANT TO USE LICENSE KEY AUTHENTICATION 👇🏻
-
+        // REGISTRATION METHODS
         private async void BtnRegisterWithLicenseKey_Click(object sender, EventArgs e)
         {
             lblStatus.Text = "Registering with license key...";
@@ -146,10 +139,6 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
                 BtnRegisterWithLicenseKey.Enabled = true;
             }
         }
-
-
-
-// USE THIS BUTTON IF YOU WANT TO USE USERNAME/PASSWORD AUTHENTICATION 👇🏻
 
         private async void BtnRegisterWithUserPass_Click(object sender, EventArgs e)
         {
@@ -173,9 +162,7 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
             }
         }
 
-
-        // BELOW IS THE LOGIN BUTTON METHOD 👇🏻
-
+        // LOGIN METHOD
         private async void BtnLogin_Click(object sender, EventArgs e)
         {
             // Double-check that user is registered (this should not happen if UI is working correctly)
@@ -233,8 +220,7 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
         }
 
 
-        // BELOW IS THE METHOD FOR LOGOUT BUTTON 👇🏻
-
+        // Logout and clear stored credentials
         private void BtnLogout_Click(object sender, EventArgs e)
         {
             var result = MessageBox.Show("Do you want to clear your saved credentials? If you choose 'No', you can login again without re-registering.",
@@ -278,5 +264,36 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
 
         }
 
+        // ========================================================================================================
+        // FORM DISPOSAL - CLEANUP RESOURCES
+        // ========================================================================================================
+        
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // Dispose managed resources
+                if (_authClient != null)
+                {
+                    _authClient.Dispose();
+                    _authClient = null;
+                }
+                
+                // Dispose components if they exist
+                if (components != null)
+                {
+                    components.Dispose();
+                }
+            }
+            base.Dispose(disposing);
+        }
+
+        // Handle form closing to cleanup shared resources
+        protected override void OnFormClosed(FormClosedEventArgs e)
+        {
+            // Cleanup shared HttpClient when application closes
+            RedefineAuthClient.DisposeSharedResources();
+            base.OnFormClosed(e);
+        }
     }
 }
