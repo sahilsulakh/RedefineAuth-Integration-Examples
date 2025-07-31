@@ -209,16 +209,16 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
             {
                 // Use simple Base64 encoding with basic obfuscation for .NET Framework compatibility
                 byte[] data = Encoding.UTF8.GetBytes(text);
-
+                
                 // Simple XOR encryption with a key derived from machine/user info
                 string key = Environment.MachineName + Environment.UserName;
                 byte[] keyBytes = Encoding.UTF8.GetBytes(key);
-
+                
                 for (int i = 0; i < data.Length; i++)
                 {
                     data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
                 }
-
+                
                 return Convert.ToBase64String(data);
             }
             catch
@@ -233,16 +233,16 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
             try
             {
                 byte[] data = Convert.FromBase64String(encryptedText);
-
+                
                 // Simple XOR decryption with the same key
                 string key = Environment.MachineName + Environment.UserName;
                 byte[] keyBytes = Encoding.UTF8.GetBytes(key);
-
+                
                 for (int i = 0; i < data.Length; i++)
                 {
                     data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
                 }
-
+                
                 return Encoding.UTF8.GetString(data);
             }
             catch
@@ -286,12 +286,36 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
     }
 
     // Main Authentication Client
-    public class RedefineAuthClient
+    public class RedefineAuthClient : IDisposable
     {
-        private static readonly HttpClient httpClient = new HttpClient();
+        private static readonly object _lockObject = new object();
+        private static HttpClient _sharedHttpClient;
         private readonly string _redefineApiBaseUrl;
         private readonly string _redefineDeveloperId;
         private readonly AuthenticationSession _session;
+        private bool _disposed = false;
+
+        // Shared HttpClient property with lazy initialization
+        private static HttpClient SharedHttpClient
+        {
+            get
+            {
+                if (_sharedHttpClient == null)
+                {
+                    lock (_lockObject)
+                    {
+                        if (_sharedHttpClient == null)
+                        {
+                            _sharedHttpClient = new HttpClient();
+                            _sharedHttpClient.DefaultRequestHeaders.Accept.Clear();
+                            _sharedHttpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+                            _sharedHttpClient.Timeout = TimeSpan.FromSeconds(30);
+                        }
+                    }
+                }
+                return _sharedHttpClient;
+            }
+        }
 
         public RedefineAuthClient(string apiBaseUrl, string redefineDeveloperId)
         {
@@ -307,10 +331,6 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
             _redefineApiBaseUrl = apiBaseUrl.TrimEnd('/');
             _redefineDeveloperId = redefineDeveloperId;
             _session = new AuthenticationSession();
-
-            httpClient.DefaultRequestHeaders.Accept.Clear();
-            httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-            httpClient.Timeout = TimeSpan.FromSeconds(30);
         }
 
         // Session management properties
@@ -363,8 +383,10 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
             try
             {
                 string testUrl = $"{_redefineApiBaseUrl}/api/health";
-                HttpResponseMessage response = await httpClient.GetAsync(testUrl);
-                return response.IsSuccessStatusCode;
+                using (HttpResponseMessage response = await SharedHttpClient.GetAsync(testUrl))
+                {
+                    return response.IsSuccessStatusCode;
+                }
             }
             catch (Exception ex)
             {
@@ -397,7 +419,7 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
                     // Save credentials for future use
                     CredentialStorage.SaveCredentials("License Key", licenseKey, null, null);
                 }
-
+                
                 return new AuthenticationResult
                 {
                     Success = result.Success,
@@ -441,7 +463,7 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
                     // Save credentials for future use
                     CredentialStorage.SaveCredentials("Username/Password", null, username, password);
                 }
-
+                
                 return new AuthenticationResult
                 {
                     Success = result.Success,
@@ -601,10 +623,46 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
             _session.Reset();
         }
 
+        /// <summary>
+        /// Dispose method for IDisposable
+        /// </summary>
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _session?.Reset();
+                }
+                _disposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Static method to dispose shared HttpClient when application closes
+        /// </summary>
+        public static void DisposeSharedResources()
+        {
+            lock (_lockObject)
+            {
+                if (_sharedHttpClient != null)
+                {
+                    _sharedHttpClient.Dispose();
+                    _sharedHttpClient = null;
+                }
+            }
+        }
+
         private async Task<ValidationResponse> PostValidationRequestAsync<TRequest>(string endpointUrl, TRequest requestPayload)
         {
             string jsonPayload = JsonConvert.SerializeObject(requestPayload);
-            HttpContent httpContent = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
             // Retry logic for better resilience
             int maxRetries = 3;
@@ -612,86 +670,104 @@ namespace RedefineApp                   // <<<--- REPLACE WITH YOUR WORKSPACE NA
 
             for (int attempt = 1; attempt <= maxRetries; attempt++)
             {
-                try
+                // Create fresh HttpContent for each attempt to avoid disposal issues
+                using (HttpContent httpContent = new StringContent(jsonPayload, Encoding.UTF8, "application/json"))
                 {
-                    HttpResponseMessage response = await httpClient.PostAsync(endpointUrl, httpContent);
-                    string responseBody = await response.Content.ReadAsStringAsync();
-
-                    if (response.IsSuccessStatusCode)
+                    try
                     {
-                        ValidationResponse validationResponse = JsonConvert.DeserializeObject<ValidationResponse>(responseBody);
-                        return validationResponse ?? new ValidationResponse { Success = false, Message = "Failed to parse successful server response.", Status = "response_parse_error" };
-                    }
-                    else
-                    {
-                        try
+                        using (HttpResponseMessage response = await SharedHttpClient.PostAsync(endpointUrl, httpContent))
                         {
-                            ValidationResponse errorResponse = JsonConvert.DeserializeObject<ValidationResponse>(responseBody);
-                            if (errorResponse != null && !string.IsNullOrEmpty(errorResponse.Message))
+                            string responseBody = await response.Content.ReadAsStringAsync();
+
+                            if (response.IsSuccessStatusCode)
                             {
-                                return errorResponse;
+                                ValidationResponse validationResponse = JsonConvert.DeserializeObject<ValidationResponse>(responseBody);
+                                return validationResponse ?? new ValidationResponse { Success = false, Message = "Failed to parse successful server response.", Status = "response_parse_error" };
+                            }
+                            else
+                            {
+                                try
+                                {
+                                    ValidationResponse errorResponse = JsonConvert.DeserializeObject<ValidationResponse>(responseBody);
+                                    if (errorResponse != null && !string.IsNullOrEmpty(errorResponse.Message))
+                                    {
+                                        return errorResponse;
+                                    }
+                                }
+                                catch (JsonException) { /* Use raw body */ }
+
+                                Console.WriteLine($"Redefine API Error (Attempt {attempt}): {response.StatusCode} - {responseBody}");
+                                
+                                // Don't retry on client errors (4xx), only on server errors (5xx)
+                                if ((int)response.StatusCode < 500)
+                                {
+                                    return new ValidationResponse
+                                    {
+                                        Success = false,
+                                        Message = $"Redefine server returned an error. Status: {response.StatusCode}. Details: {responseBody}",
+                                        Status = "api_error"
+                                    };
+                                }
+                                
+                                // If it's a server error and we have retries left, continue to retry
+                                if (attempt < maxRetries)
+                                {
+                                    Console.WriteLine($"Server error detected. Retrying in {retryDelay}ms... (Attempt {attempt + 1}/{maxRetries})");
+                                    await Task.Delay(retryDelay);
+                                    retryDelay *= 2; // Exponential backoff
+                                    continue;
+                                }
+                                
+                                return new ValidationResponse
+                                {
+                                    Success = false,
+                                    Message = $"Redefine server returned an error after {maxRetries} attempts. Status: {response.StatusCode}. Details: {responseBody}",
+                                    Status = "api_error_max_retries"
+                                };
                             }
                         }
-                        catch (JsonException) { /* Use raw body */ }
-
-                        Console.WriteLine($"Redefine API Error (Attempt {attempt}): {response.StatusCode} - {responseBody}");
-
-                        // Don't retry on client errors (4xx), only on server errors (5xx)
-                        if ((int)response.StatusCode < 500)
-                        {
-                            return new ValidationResponse
-                            {
-                                Success = false,
-                                Message = $"Redefine server returned an error. Status: {response.StatusCode}. Details: {responseBody}",
-                                Status = "api_error"
-                            };
-                        }
-
-                        // If it's a server error and we have retries left, continue to retry
+                    }
+                    catch (HttpRequestException ex)
+                    {
+                        Console.WriteLine($"HTTP Request Exception (Attempt {attempt}): " + ex.ToString());
                         if (attempt < maxRetries)
                         {
-                            Console.WriteLine($"Server error detected. Retrying in {retryDelay}ms... (Attempt {attempt + 1}/{maxRetries})");
+                            Console.WriteLine($"Network error detected. Retrying in {retryDelay}ms... (Attempt {attempt + 1}/{maxRetries})");
                             await Task.Delay(retryDelay);
-                            retryDelay *= 2; // Exponential backoff
+                            retryDelay *= 2;
                             continue;
                         }
-
-                        return new ValidationResponse
+                        return new ValidationResponse { Success = false, Message = "Network error or Redefine server unreachable after multiple attempts. " + ex.Message, Status = "network_error" };
+                    }
+                    catch (TaskCanceledException ex)
+                    {
+                        Console.WriteLine($"Request Timed Out (Attempt {attempt}): " + ex.Message);
+                        if (attempt < maxRetries)
                         {
-                            Success = false,
-                            Message = $"Redefine server returned an error after {maxRetries} attempts. Status: {response.StatusCode}. Details: {responseBody}",
-                            Status = "api_error_max_retries"
-                        };
+                            Console.WriteLine($"Timeout detected. Retrying in {retryDelay}ms... (Attempt {attempt + 1}/{maxRetries})");
+                            await Task.Delay(retryDelay);
+                            retryDelay *= 2;
+                            continue;
+                        }
+                        return new ValidationResponse { Success = false, Message = "The request to the Redefine server timed out after multiple attempts. " + ex.Message, Status = "timeout_error" };
                     }
-                }
-                catch (HttpRequestException ex)
-                {
-                    Console.WriteLine($"HTTP Request Exception (Attempt {attempt}): " + ex.ToString());
-                    if (attempt < maxRetries)
+                    catch (ObjectDisposedException ex)
                     {
-                        Console.WriteLine($"Network error detected. Retrying in {retryDelay}ms... (Attempt {attempt + 1}/{maxRetries})");
-                        await Task.Delay(retryDelay);
-                        retryDelay *= 2;
-                        continue;
+                        Console.WriteLine($"Object Disposed Exception (Attempt {attempt}): " + ex.ToString());
+                        if (attempt < maxRetries)
+                        {
+                            Console.WriteLine($"Disposal error detected. Retrying in {retryDelay}ms... (Attempt {attempt + 1}/{maxRetries})");
+                            await Task.Delay(retryDelay);
+                            retryDelay *= 2;
+                            continue;
+                        }
+                        return new ValidationResponse { Success = false, Message = "HTTP client disposal error after multiple attempts. Please try again.", Status = "disposal_error" };
                     }
-                    return new ValidationResponse { Success = false, Message = "Network error or Redefine server unreachable after multiple attempts. " + ex.Message, Status = "network_error" };
-                }
-                catch (TaskCanceledException ex)
-                {
-                    Console.WriteLine($"Request Timed Out (Attempt {attempt}): " + ex.Message);
-                    if (attempt < maxRetries)
+                    catch (Exception ex)
                     {
-                        Console.WriteLine($"Timeout detected. Retrying in {retryDelay}ms... (Attempt {attempt + 1}/{maxRetries})");
-                        await Task.Delay(retryDelay);
-                        retryDelay *= 2;
-                        continue;
+                        Console.WriteLine("Generic Exception during validation: " + ex.ToString());
+                        return new ValidationResponse { Success = false, Message = "An unexpected error occurred on the client side: " + ex.Message, Status = "client_unexpected_error" };
                     }
-                    return new ValidationResponse { Success = false, Message = "The request to the Redefine server timed out after multiple attempts. " + ex.Message, Status = "timeout_error" };
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Generic Exception during validation: " + ex.ToString());
-                    return new ValidationResponse { Success = false, Message = "An unexpected error occurred on the client side: " + ex.Message, Status = "client_unexpected_error" };
                 }
             }
 
