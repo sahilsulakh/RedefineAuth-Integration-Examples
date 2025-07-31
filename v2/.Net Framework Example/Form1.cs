@@ -45,6 +45,9 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
             txtAppPass.Enabled = true;
         }
 
+
+// BELOW METHOD IS FOR LOADING STORED CREDENTIALS OF THE USER 👇🏻
+
         private void LoadStoredCredentials()
         {
             var storedCredentials = _authClient.GetStoredCredentials();
@@ -65,6 +68,9 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
                 }
             }
         }
+
+
+// BELOW METHOD IS FOR PROCESSING THE AUTH RESULT 👇🏻
 
         private void ProcessAuthResult(AuthenticationResult result, string operation)
         {
@@ -117,7 +123,10 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
         }
 
 
-        // REGISTRATION METHODS
+        // BELOW ARE THE TWO REGISTRATION METHOD AND YOU HAVE TO USE ONE OF THEM. DO NOT USE THEM BOTH TOGETHER. 👇🏻⚠️⚠️
+
+// USE THIS BUTTON IF YOU WANT TO USE LICENSE KEY AUTHENTICATION 👇🏻🔑
+
         private async void BtnRegisterWithLicenseKey_Click(object sender, EventArgs e)
         {
             lblStatus.Text = "Registering with license key...";
@@ -139,6 +148,9 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
                 BtnRegisterWithLicenseKey.Enabled = true;
             }
         }
+
+
+// USE THIS BUTTON IF YOU WANT TO USE USERNAME AND PASSWORD AUTHENTICATION 👇🏻👤
 
         private async void BtnRegisterWithUserPass_Click(object sender, EventArgs e)
         {
@@ -162,7 +174,9 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
             }
         }
 
-        // LOGIN METHOD
+
+        // BELOW IS THE METHOD FOR THE LOGIN BUTTON 👇🏻
+
         private async void BtnLogin_Click(object sender, EventArgs e)
         {
             // Double-check that user is registered (this should not happen if UI is working correctly)
@@ -220,7 +234,8 @@ namespace RedefineApp                                 // <<<--- REPLACE WITH YOU
         }
 
 
-        // Logout and clear stored credentials
+        // BELOW IS THE METHOD FOR LOGOUT BUTTON 👇🏻
+
         private void BtnLogout_Click(object sender, EventArgs e)
         {
             var result = MessageBox.Show("Do you want to clear your saved credentials? If you choose 'No', you can login again without re-registering.",
