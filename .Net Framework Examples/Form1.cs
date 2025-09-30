@@ -11,7 +11,7 @@ namespace YourWorkspaceNameHere
         
         // Developer sets their Redefine ID and Base URL here
         private const string REDEFINE_ID = "YOUR_REDEFINE_ID_HERE"; // <<<--- GET IT FROM THE PROFILE PAGE OF REDEFINE LITE
-        private const string BASE_URL = "http://localhost:9002"; // DO NOT CHANGE IT!
+        private const string BASE_URL = "https://redefine-auth-v2.vercel.app/"; // DO NOT CHANGE IT!
         private const string APP_VERSION = "1.0.0.0"; // Change this to match your application version
 
         public Form1()
