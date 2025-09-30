@@ -2,10 +2,9 @@
 
 This is a simple, production-ready .NET integration for RedefineAuth that allows end users to register and login using a username and license key.
 
-We provide two implementations:
+We provide the implementations:
 
-1. **MinimalExample.cs** - A complete self-contained example with UI components
-2. **RedefineCore.cs + Form1.cs** - Separated core logic and UI event handlers
+1. **RedefineCore.cs + Form1.cs** - Separated core logic and UI event handlers
 
 ## Requirements
 
