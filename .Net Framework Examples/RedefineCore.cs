@@ -15,7 +15,7 @@ namespace RedefineAuth
         private readonly string _baseUrl;
         private readonly string _appVersion;
 
-        public RedefineAuthClient(string redefineId, string baseUrl = "http://localhost:9002", string appVersion = "1.0.0.0")
+        public RedefineAuthClient(string redefineId, string baseUrl = "https://redefine-auth-v2.vercel.app/", string appVersion = "1.0.0.0")
         {
             _redefineId = redefineId;
             _baseUrl = baseUrl.TrimEnd('/'); // Remove trailing slash if present
