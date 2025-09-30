@@ -18,7 +18,7 @@ We provide the implementations:
 2. Set your Redefine ID in `Form1.cs`:
    ```csharp
    private const string REDEFINE_ID = "YOUR_REDEFINE_ID_HERE";
-   private const string BASE_URL = "http://localhost:9002"; // DO NOT CHANGE IT
+   private const string BASE_URL = "https://redefine-auth-v2.vercel.app/"; // DO NOT CHANGE IT
    ```
 3. Make sure your form has the following controls:
    - `txtUsername` (TextBox)
