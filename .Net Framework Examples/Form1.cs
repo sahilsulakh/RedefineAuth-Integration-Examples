@@ -10,12 +10,14 @@ namespace YourWorkspaceNameHere
         private RedefineAuthClient _authClient;
         
         // Developer sets their Redefine ID and Base URL here
-        private const string REDEFINE_ID = "6887a0de18b5044667097228"; // <<<--- GET IT FROM PROFILE PAGE OF REDEFINE LITE
-        private const string BASE_URL = "http://localhost:9002"; // DO NOT CHANGE!
+        private const string REDEFINE_ID = "YOUR_REDEFINE_ID_HERE"; // <<<--- GET IT FROM THE PROFILE PAGE OF REDEFINE LITE
+        private const string BASE_URL = "http://localhost:9002"; // DO NOT CHANGE IT!
+        private const string APP_VERSION = "1.0.0.0"; // Change this to match your application version
+
         public Form1()
         {
             InitializeComponent();
-            _authClient = new RedefineAuthClient(REDEFINE_ID, BASE_URL);
+            _authClient = new RedefineAuthClient(REDEFINE_ID, BASE_URL, APP_VERSION);
         }
 
         private async void btnRegister_Click(object sender, EventArgs e)
@@ -109,6 +111,11 @@ namespace YourWorkspaceNameHere
                     if (result.Message.StartsWith("Application Paused"))
                     {
                         MessageBox.Show($"Login failed:\n\n{result.Message}\n\nThe application has been paused by the developer.", "Application Paused", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    }
+                    // Check if it's an outdated version error
+                    else if (result.Message.StartsWith("Access Denied") && result.Message.Contains("version"))
+                    {
+                        MessageBox.Show($"Login failed:\n\n{result.Message}\n\nYour application version is outdated. Please update to the latest version.", "Outdated Version", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     }
                     else
                     {
