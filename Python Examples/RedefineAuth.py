@@ -13,7 +13,7 @@ class AuthResult:
 class RedefineAuthClient:
     """Client for RedefineAuth authentication service."""
     
-    def __init__(self, redefine_id: str, base_url: str = "http://localhost:9002", app_version: str = "1.0.0.0"):
+    def __init__(self, redefine_id: str, base_url: str = "https://redefine-auth-v2.vercel.app/", app_version: str = "1.0.0.0"):
         """
         Initialize the RedefineAuth client.
         
@@ -154,7 +154,7 @@ if __name__ == "__main__":
     # Initialize the client
     client = RedefineAuthClient(
         redefine_id="YOUR_REDEFINE_ID_HERE",
-        base_url="http://localhost:9002",  # Change this to your deployed RedefineAuth URL
+        base_url="https://redefine-auth-v2.vercel.app/",  # Change this to your deployed RedefineAuth URL
         app_version="1.0.0.0"  # Change this to match your application version
     )
     
