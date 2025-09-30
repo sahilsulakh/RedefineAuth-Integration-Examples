@@ -27,7 +27,7 @@ from RedefineAuth import RedefineAuthClient
 # Initialize the client
 client = RedefineAuthClient(
     redefine_id="YOUR_REDEFINE_ID_HERE",
-    base_url="https://redefine-auth-v2.vercel.app/",  # Change this to your deployed RedefineAuth URL
+    base_url="https://redefine-auth-v2.vercel.app/",  # DO NOT CHANGE IT!
     app_version="1.0.0.0"  # Change this to match your application version
 )
 
