@@ -22,25 +22,34 @@ This setting is implemented in the license key validation API (`/api/keys/valida
 
 This setting controls whether a confirmation dialog is shown before deleting all keys or credentials. It's a UI-only setting that affects the dashboard interface.
 
+## Version Control
+
+The Application Version setting in the Settings page provides version control for client applications:
+
+- When configured, client applications must provide a matching version number during login
+- If the client version doesn't match the configured version, users receive a customizable "Outdated Version" error message
+- This helps ensure all users are running the latest version of your application
+- The version check is implemented in both the client user login API and the license key validation API
+
 ## How It Works
 
 1. **Settings Storage**: Security settings are stored in the `UserSettings` model in the database
-2. **API Integration**: The license key validation API queries these settings
+2. **API Integration**: The APIs query these settings and enforce the restrictions
 3. **Automatic Enforcement**: When security settings are enabled, the APIs automatically enforce the restrictions
 4. **Custom Messages**: Error messages are customized using the messages configured in the Settings page
 
 ## Client Application Behavior
 
-The .NET client applications don't need any special code to handle these security settings:
-- The restrictions are automatically enforced by the server-side APIs
-- When a security violation occurs, the API returns an appropriate error message
+The .NET client applications now include application version information in their requests:
+- The application version is sent with both registration and login requests
+- When a version mismatch occurs, the API returns an appropriate error message
 - The client applications display these error messages to the end users
-- No changes are needed to the client code when security settings are modified in the dashboard
+- No changes are needed to the client code when security settings are modified in the dashboard, except updating the version constant
 
 ## Error Handling
 
 When security violations occur, the APIs return specific HTTP status codes:
-- **403 Forbidden** - For HWID mismatch errors
+- **403 Forbidden** - For HWID mismatch errors or version mismatch errors
 - **503 Service Unavailable** - For application paused status
 
 The .NET client applications handle these errors gracefully and display the custom messages configured in the dashboard.
