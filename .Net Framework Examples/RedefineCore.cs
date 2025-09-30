@@ -1,4 +1,4 @@
-// JUST CREATE THE CLASS AND COPY-PASTE THE BELOW CONTENT
+// JUST CREATE THE CLASS AND COPY-PASTE THE BELOW CODE
 
 using System;
 using System.Net.Http;
@@ -13,11 +13,13 @@ namespace RedefineAuth
     {
         private readonly string _redefineId;
         private readonly string _baseUrl;
+        private readonly string _appVersion;
 
-        public RedefineAuthClient(string redefineId, string baseUrl = "http://localhost:9002")
+        public RedefineAuthClient(string redefineId, string baseUrl = "http://localhost:9002", string appVersion = "1.0.0.0")
         {
             _redefineId = redefineId;
             _baseUrl = baseUrl.TrimEnd('/'); // Remove trailing slash if present
+            _appVersion = appVersion;
         }
 
         /// <summary>
@@ -38,7 +40,8 @@ namespace RedefineAuth
                     username = username,
                     licenseKey = licenseKey,
                     hwid = hwid,
-                    redefineDeveloperId = _redefineId
+                    redefineDeveloperId = _redefineId,
+                    appVersion = _appVersion
                 };
 
                 var json = JsonSerializer.Serialize(requestData);
@@ -85,7 +88,8 @@ namespace RedefineAuth
                 {
                     username = username,
                     hwid = hwid,
-                    redefineDeveloperId = _redefineId
+                    redefineDeveloperId = _redefineId,
+                    appVersion = _appVersion
                 };
 
                 var json = JsonSerializer.Serialize(requestData);
